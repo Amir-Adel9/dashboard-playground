@@ -88,7 +88,7 @@ export async function verifyOTP({
       role: data.user.role?.name || '',
       permissions: data.user.permissions || [],
       created_at: data.user.created_at || '',
-      isAuthenticated: getCookie('auth-token') ? true : false,
+      isAuthenticated: !!getCookie('auth-token'),
     })
 
     // Step 3: Reset useLogin store (empty for now)
