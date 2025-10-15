@@ -12,9 +12,9 @@
   },
   "aliases": {
     "components": "@/shared/components",
-    "utils": "@/shared/utils/tailwindMerge",
+    "utils": "@/shared/utils/tailwind-merge",
     "ui": "@/shared/components/ui",
-    "lib": "@/shared/utils/tailwindMerge",
+    "lib": "@/shared/utils/tailwind-merge",
     "hooks": "@/shared/hooks"
   },
   "iconLibrary": "lucide"

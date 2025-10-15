@@ -2,7 +2,7 @@ import { OTPInput, OTPInputContext } from 'input-otp'
 import { MinusIcon } from 'lucide-react'
 import * as React from 'react'
 
-import { cn } from '@/shared/utils/tailwindMerge'
+import { cn } from '@/shared/utils/tailwind-merge'
 
 function InputOTP({
   className,

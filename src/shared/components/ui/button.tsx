@@ -4,7 +4,7 @@ import * as React from 'react'
 
 import LoadingDots from '../custom/LoadingDots'
 
-import { cn } from '@/shared/utils/tailwindMerge'
+import { cn } from '@/shared/utils/tailwind-merge'
 
 import type { VariantProps } from 'class-variance-authority'
 

@@ -6,24 +6,39 @@ import { router } from '@/app/routes/router'
 import { userStore } from '@/app/stores/user.store'
 import { postRequest } from '@/shared/api/http-client'
 import { IS_DEV } from '@/shared/constants/env'
-import { getCookie, setCookie } from '@/shared/lib/cookies'
+import { setCookie } from '@/shared/lib/cookies'
 
 import type { loginFormSchema, otpViewSchema } from '../schemas/login.schema'
+import type { LoginResponse } from '../types/login.types'
 import type { ApiError } from '@/shared/api/api.types'
 import type { z } from 'zod'
 
-// Step 1: Initiate login and send OTP
 export async function initiateLogin({
   values,
 }: {
   values: z.infer<typeof loginFormSchema>
 }) {
   useLogin.setState({ email: values.email, password: values.password })
-  return await postRequest<{ code: string }>('/dashboard/auth/initiate-login', {
-    body: values,
-  })
+  return await postRequest<{ code: string; user: any }>(
+    '/dashboard/auth/initiate-login',
+    {
+      body: values,
+    },
+  )
     .then((response) => {
       if (IS_DEV) console.log('OTP Code:', response.data.code)
+
+      // Set user data from initiate-login response
+      if (response.data.user) {
+        userStore.setState({
+          name: response.data.user.name || '',
+          email: response.data.user.email || '',
+          role: response.data.user.role?.name || '',
+          permissions: response.data.user.permissions || [],
+          created_at: response.data.user.created_at || '',
+          isAuthenticated: false, // Not authenticated yet, waiting for OTP verification
+        })
+      }
 
       return response
     })
@@ -41,16 +56,20 @@ export async function initiateLogin({
     })
 }
 
-// Step 1.5: Resend OTP
 export async function resendOTP() {
   const email = useLogin.getState().email
   const password = useLogin.getState().password
-  return await postRequest('/dashboard/auth/initiate-login', {
+  return await postRequest<{ code: string }>('/dashboard/auth/initiate-login', {
     body: { email, password },
-  }).then(() => useLogin.getState().startResendOTPTimer())
+  })
+    .then((response) => {
+      if (IS_DEV) console.log('OTP Code:', response.data.code)
+
+      return response
+    })
+    .then(() => useLogin.getState().startResendOTPTimer())
 }
 
-// Step 2: Verify OTP and complete login
 export async function verifyOTP({
   values,
 }: {
@@ -59,7 +78,7 @@ export async function verifyOTP({
   const email = useLogin.getState().email
 
   try {
-    const res = await postRequest<{ token: string; user: any }>(
+    const res = await postRequest<LoginResponse>(
       '/dashboard/auth/complete-login',
       {
         body: {
@@ -69,39 +88,48 @@ export async function verifyOTP({
       },
     )
 
-    if (res.status !== true || res.message !== 'auth.successfully_logged_in') {
+    // Check if the response indicates success
+    if (res.status !== true) {
       throw new Error('Login failed: Unexpected response from server')
     }
 
     const data = res.data
-    if (!data.token || !data.user) {
-      throw new Error('Login failed: Missing token or user data')
-    }
 
-    // Step 1: Set the token
     setCookie('auth-token', data.token)
 
-    // Step 2: Update userStore
+    // Only set isAuthenticated to true, user data already set in initiate-login
     userStore.setState({
-      name: data.user.name || '',
-      email: data.user.email || '',
-      role: data.user.role?.name || '',
-      permissions: data.user.permissions || [],
-      created_at: data.user.created_at || '',
-      isAuthenticated: !!getCookie('auth-token'),
+      isAuthenticated: true,
     })
 
-    // Step 3: Reset useLogin store (empty for now)
-
-    // Step 4: Handle navigation
     router.navigate({ to: '/' })
 
-    // Step 5: Show success toast
     toast.success('Successfully logged in')
   } catch (error) {
-    if ((error as ApiError).message === 'site.invalid_or_expired_code') {
+    console.error('Login error:', error)
+
+    // Clear user data that was set in initiate-login since complete-login failed
+    userStore.setState({
+      name: '',
+      email: '',
+      role: '',
+      permissions: [],
+      created_at: '',
+      isAuthenticated: false,
+    })
+
+    // Check for specific OTP-related errors
+    const errorMessage =
+      (error as ApiError).message || (error as any).response?.message || ''
+
+    if (
+      errorMessage.includes('invalid data or expired code') ||
+      (errorMessage.includes('invalid') && errorMessage.includes('expired'))
+    ) {
       throw new Error('The OTP is invalid or expired')
     }
+
+    // Re-throw the original error for other cases
     throw error
   }
 }

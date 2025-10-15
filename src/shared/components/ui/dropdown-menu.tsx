@@ -2,7 +2,7 @@ import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
 import { CheckIcon, ChevronRightIcon, CircleIcon } from 'lucide-react'
 import * as React from 'react'
 
-import { cn } from '@/shared/utils/tailwindMerge'
+import { cn } from '@/shared/utils/tailwind-merge'
 
 function DropdownMenu({
   ...props

@@ -3,11 +3,14 @@ import { devtools } from 'zustand/middleware'
 
 import { router } from '../routes/router'
 
+import { useLogin } from '@/features/auth/login/stores/login.store'
 import { getRequest, postRequest } from '@/shared/api/http-client'
 import { IS_DEV } from '@/shared/constants/env'
 import { deleteCookie, getCookie } from '@/shared/lib/cookies'
 
-interface userStore {
+import type { User } from '@/shared/types/user.types'
+
+interface userStore extends Omit<User, 'role'> {
   name: string
   email: string
   created_at: string
@@ -39,9 +42,10 @@ const createUserStore = () => {
       setUser: (user) => set((state) => ({ ...state, ...user })),
       getUser: async () => {
         try {
-          const res = await getRequest<{ user: any }>('/dashboard/profile')
+          const res = await getRequest<{ user: User }>('/dashboard/profile', {
+            sendAuthToken: true,
+          })
           const userData = res.data.user
-
           set({
             name: userData.name,
             email: userData.email,
@@ -64,13 +68,26 @@ const createUserStore = () => {
       },
       logout: async () => {
         try {
-          await postRequest('/auth/logout')
-          deleteCookie('auth-token')
-          set(initialState)
-          router.navigate({ to: '/login' })
+          await postRequest('/auth/logout', {
+            sendAuthToken: true,
+          }).then(() => {
+            deleteCookie('auth-token')
+            set(initialState)
+            useLogin.setState({
+              email: '',
+              password: '',
+              currentView: 'login',
+            })
+            router.navigate({ to: '/login' })
+          })
         } catch (error) {
           console.error('Logout failed:', error)
           set(initialState)
+          useLogin.setState({
+            email: '',
+            password: '',
+            currentView: 'login',
+          })
           router.navigate({ to: '/login' })
         }
       },

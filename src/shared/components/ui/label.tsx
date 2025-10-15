@@ -3,7 +3,7 @@
 import * as LabelPrimitive from '@radix-ui/react-label'
 import * as React from 'react'
 
-import { cn } from '@/shared/utils/tailwindMerge'
+import { cn } from '@/shared/utils/tailwind-merge'
 
 function Label({
   className,

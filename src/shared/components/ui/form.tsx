@@ -8,7 +8,7 @@ import {
 } from 'react-hook-form'
 
 import { Label } from '@/shared/components/ui/label'
-import { cn } from '@/shared/utils/tailwindMerge'
+import { cn } from '@/shared/utils/tailwind-merge'
 
 import type * as LabelPrimitive from '@radix-ui/react-label'
 import type { ControllerProps, FieldPath, FieldValues } from 'react-hook-form'

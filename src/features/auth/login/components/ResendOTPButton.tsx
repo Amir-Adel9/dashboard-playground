@@ -28,6 +28,7 @@ const ResendOTPButton = () => {
         resendOTP()
         startResendOTPTimer()
       }}
+      className="text-center"
     >
       Resend OTP {resendOTPTimer !== 0 && ` in ${resendOTPTimer}s`}
     </Button>

@@ -4,7 +4,7 @@ import * as ToggleGroupPrimitive from '@radix-ui/react-toggle-group'
 import * as React from 'react'
 
 import { toggleVariants } from '@/shared/components/ui/toggle'
-import { cn } from '@/shared/utils/tailwindMerge'
+import { cn } from '@/shared/utils/tailwind-merge'
 
 import type { VariantProps } from 'class-variance-authority'
 

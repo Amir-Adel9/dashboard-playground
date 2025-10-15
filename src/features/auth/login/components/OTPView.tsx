@@ -41,10 +41,7 @@ const OTPForm = () => {
     } catch (error) {
       otpViewForm.setError('otp', {
         type: 'manual',
-        message:
-          error instanceof Error
-            ? error.message
-            : 'The OTP is invalid or expired',
+        message: 'The OTP is invalid or expired',
       })
     }
   }
@@ -94,7 +91,7 @@ const OTPForm = () => {
                       </InputOTPGroup>
                     </InputOTP>
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-center" />
                 </FormItem>
               )}
             />
@@ -108,7 +105,7 @@ const OTPForm = () => {
           </form>
         </Form>
       </div>
-      <div className="w-full flex items-center justify-between mt-2">
+      <div className="w-full flex items-center justify-center mt-2">
         <ResendOTPButton />
       </div>
     </div>
