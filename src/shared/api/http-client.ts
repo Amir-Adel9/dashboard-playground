@@ -52,10 +52,7 @@ export async function apiRequest<T>(
   const url = API_URL + endpoint + buildQueryString(finalQueryParams)
 
   const makeRequest = async (): Promise<Response> => {
-    console.log('Making request to:', url)
-    console.log('Request options:', fetchOptions)
     const response = await fetch(url, fetchOptions)
-    console.log('Response status:', response.status)
     if (response.status === 401 && sendAuthToken) {
       const newToken = await refreshAccessToken()
       if (newToken) {

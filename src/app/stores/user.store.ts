@@ -1,9 +1,11 @@
-import { redirect } from '@tanstack/react-router'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
+import { router } from '../routes/router'
+
 import { getRequest, postRequest } from '@/shared/api/http-client'
-import { deleteCookie } from '@/shared/lib/cookies'
+import { IS_DEV } from '@/shared/constants/env'
+import { deleteCookie, getCookie } from '@/shared/lib/cookies'
 
 interface userStore {
   name: string
@@ -27,7 +29,7 @@ const initialState: Omit<
   created_at: '',
   role: '',
   permissions: [],
-  isAuthenticated: false,
+  isAuthenticated: !!getCookie('auth-token'),
 }
 
 const createUserStore = () => {
@@ -55,21 +57,21 @@ const createUserStore = () => {
             error.response?.status === 401 &&
             error.response?.message === 'site.deleted_account_token'
           ) {
-            set(initialState) // Reset the store state
-            redirect({ to: '/login' }) // Redirect to login
+            set(initialState)
+            router.navigate({ to: '/login' })
           }
         }
       },
       logout: async () => {
         try {
           await postRequest('/auth/logout')
-          deleteCookie('token')
+          deleteCookie('auth-token')
           set(initialState)
-          redirect({ to: '/login' })
+          router.navigate({ to: '/login' })
         } catch (error) {
           console.error('Logout failed:', error)
           set(initialState)
-          redirect({ to: '/login' })
+          router.navigate({ to: '/login' })
         }
       },
       reset: () => set(initialState),
@@ -79,7 +81,7 @@ const createUserStore = () => {
 
 let userStore = createUserStore()
 
-if (process.env.NODE_ENV === 'development') {
+if (IS_DEV) {
   if (!(window as any).userStore) {
     ;(window as any).userStore = userStore
   }

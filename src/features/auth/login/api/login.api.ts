@@ -2,13 +2,14 @@ import { toast } from 'sonner'
 
 import { useLogin } from '../stores/login.store'
 
-import { router } from '@/app/main'
+import { router } from '@/app/routes/router'
 import { userStore } from '@/app/stores/user.store'
 import { postRequest } from '@/shared/api/http-client'
 import { IS_DEV } from '@/shared/constants/env'
 import { getCookie, setCookie } from '@/shared/lib/cookies'
 
 import type { loginFormSchema, otpViewSchema } from '../schemas/login.schema'
+import type { ApiError } from '@/shared/api/api.types'
 import type { z } from 'zod'
 
 // Step 1: Initiate login and send OTP
@@ -22,8 +23,6 @@ export async function initiateLogin({
     body: values,
   })
     .then((response) => {
-      console.log('OTP Code:', response.data.code)
-      console.log(IS_DEV)
       if (IS_DEV) console.log('OTP Code:', response.data.code)
 
       return response
@@ -59,80 +58,50 @@ export async function verifyOTP({
 }) {
   const email = useLogin.getState().email
 
-  return await postRequest<{ token: string; user: any }>(
-    '/dashboard/auth/complete-login',
-    {
-      body: {
-        email,
-        verification_code: values.otp,
+  try {
+    const res = await postRequest<{ token: string; user: any }>(
+      '/dashboard/auth/complete-login',
+      {
+        body: {
+          email,
+          verification_code: values.otp,
+        },
       },
-    },
-  )
-    .then((res) => {
-      if (
-        res.status !== true ||
-        res.message !== 'auth.successfully_logged_in'
-      ) {
-        throw new Error('Login failed: Unexpected response from server')
-      }
+    )
 
-      return res.data
+    if (res.status !== true || res.message !== 'auth.successfully_logged_in') {
+      throw new Error('Login failed: Unexpected response from server')
+    }
+
+    const data = res.data
+    if (!data.token || !data.user) {
+      throw new Error('Login failed: Missing token or user data')
+    }
+
+    // Step 1: Set the token
+    setCookie('auth-token', data.token)
+
+    // Step 2: Update userStore
+    userStore.setState({
+      name: data.user.name || '',
+      email: data.user.email || '',
+      role: data.user.role?.name || '',
+      permissions: data.user.permissions || [],
+      created_at: data.user.created_at || '',
+      isAuthenticated: getCookie('auth-token') ? true : false,
     })
-    .then((data) => {
-      if (!data.token || !data.user) {
-        throw new Error('Login failed: Missing token or user data')
-      }
 
-      // Step 1: Set the token
-      try {
-        setCookie('token', data.token, 7)
-      } catch (error) {
-        console.error('Error setting cookie:', error)
-        throw error
-      }
+    // Step 3: Reset useLogin store (empty for now)
 
-      // Step 2: Update userStore
-      try {
-        userStore.setState({
-          name: data.user.name || '',
-          email: data.user.email || '',
-          role: data.user.role?.name || '',
-          permissions: data.user.permissions || [],
-          created_at: data.user.created_at || '',
-          isAuthenticated: getCookie('token') ? true : false,
-        })
-      } catch (error) {
-        console.error('Error updating userStore:', error)
-        throw error
-      }
+    // Step 4: Handle navigation
+    router.navigate({ to: '/' })
 
-      // Step 3: Reset useLogin store
-      try {
-      } catch (error) {
-        console.error('Error resetting useLogin store:', error)
-        throw error
-      }
-
-      // Step 4: Handle navigation
-      try {
-        console.log('Redirecting to /')
-        router.navigate({ to: '/' })
-      } catch (error) {
-        console.error('Error navigating:', error)
-      }
-      // Step 5: Show success toast
-      try {
-        toast.success('Successfully logged in')
-      } catch (error) {
-        console.error('Error showing toast:', error)
-        // Don't throw the error, as this is a non-critical step
-      }
-    })
-    .catch((error) => {
-      console.error('Verify OTP Error:', error)
-      if (error.response?.message === 'site.invalid_or_expired_code') {
-        throw new Error('The OTP is invalid or expired')
-      }
-      throw error
-    })
+    // Step 5: Show success toast
+    toast.success('Successfully logged in')
+  } catch (error) {
+    if ((error as ApiError).message === 'site.invalid_or_expired_code') {
+      throw new Error('The OTP is invalid or expired')
+    }
+    throw error
+  }
 }
